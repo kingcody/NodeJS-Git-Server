@@ -5,6 +5,7 @@
 */
 
 var CLI, EventEmitter, GITCLI, GitServer, Table, async, commander, fs, getUserHomeDir, logging, mkdirp, path, repoDB, repoLocation, repoPort, repos, _c, _g,
+  certs = false,
   _this = this,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -27,11 +28,38 @@ Table = require('cli-table');
 
 commander = require('commander');
 
-commander.version('0.0.1').option('-p, --port [value]', 'Port to run Git on', parseInt).option('-d, --directory [value]', 'Directory of the repos').option('-l, --logging', 'Verbose logging on or off').parse(process.argv);
+commander.version('0.0.1')
+  .option('-p, --port [value]', 'Port to run Git on', parseInt)
+  .option('-d, --directory [value]', 'Directory of the repos')
+  .option('-l, --logging', 'Verbose logging on or off')
+  .option('--ssl', 'Enable SSL support; requires key and cert options')
+  .option('-k, --key', 'SSL key path')
+  .option('-c, --cert', 'SSL cert path')
+  .option('-a, --certificate-authority', 'SSL certificate authority path')
+  .parse(process.argv);
 
 repoPort = commander.port || 7000;
 
 logging = commander.logging || false;
+
+if (commander.ssl && commander.key && commander.cert) {
+  var readFileSync = fs.readFileSync,
+  readFile = function(path) {
+    return readFileSync(path, {encoding:'utf8'});
+  };
+  if(!commander.certificateAuthority) {
+    cert = {
+      key: readFile(commander.key),
+      cert: readFile(commander.cert)
+    };
+  } else {
+    cert = {
+      key: readFile(commander.key),
+      cert: readFile(commander.cert),
+      ca: readFile(commander.certificateAuthority)
+    }
+  }
+}
 
 getUserHomeDir = function() {
   var dir;
@@ -311,6 +339,10 @@ GITCLI = (function(_super) {
 
 })(EventEmitter);
 
-_g = new GitServer(repos.repos, logging, repoLocation, repoPort);
+if (!certs) {
+  _g = new GitServer(repos.repos, logging, repoLocation, repoPort);
+} else {
+  _g = new GitServer(repos.repos, logging, repoLocation, repoPort, certs);
+}
 
 _c = new GITCLI(_g, repos.users);
