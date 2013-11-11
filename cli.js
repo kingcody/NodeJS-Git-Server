@@ -14,7 +14,7 @@ EventEmitter = require('events').EventEmitter;
 
 CLI = require('cli-listener');
 
-GitServer = require('./host.js');
+GitServer = require('./lib/host.js');
 
 mkdirp = require('mkdirp');
 
@@ -33,9 +33,9 @@ commander.version('0.0.1')
   .option('-d, --directory [value]', 'Directory of the repos')
   .option('-l, --logging', 'Verbose logging on or off')
   .option('--ssl', 'Enable SSL support; requires key and cert options')
-  .option('-k, --key', 'SSL key path')
-  .option('-c, --cert', 'SSL cert path')
-  .option('-a, --certificate-authority', 'SSL certificate authority path')
+  .option('-k, --key [value]', 'SSL key path')
+  .option('-c, --cert [value]', 'SSL cert path')
+  .option('-a, --certificate-authority [value]', 'SSL certificate authority path')
   .parse(process.argv);
 
 repoPort = commander.port || 7000;
@@ -44,7 +44,9 @@ logging = commander.logging || false;
 
 if (commander.ssl && commander.key && commander.cert) {
   var readFileSync = fs.readFileSync,
+      resolve = require('path').resolve
   readFile = function(path) {
+    path = resolve(path);
     return readFileSync(path, {encoding:'utf8'});
   };
   if(!commander.certificateAuthority) {
